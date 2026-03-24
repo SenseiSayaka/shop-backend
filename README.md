@@ -25,4 +25,4 @@ cd shop-backend
 docker compose up -d
 
 # Проверить статус
-docker compose ps
+docker compose ps# trigger ci
