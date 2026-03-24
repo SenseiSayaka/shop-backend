@@ -3,6 +3,7 @@ package com.shop.product.repository
 import com.shop.product.domain.models.Product
 import com.shop.product.domain.tables.Products
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigDecimal
 import java.time.Instant
@@ -10,8 +11,21 @@ import java.time.Instant
 interface ProductRepository {
     fun findAll(): List<Product>
     fun findById(id: Int): Product?
-    fun create(name: String, description: String?, price: BigDecimal, stock: Int, category: String?): Product
-    fun update(id: Int, name: String?, description: String?, price: BigDecimal?, stock: Int?, category: String?): Product?
+    fun create(
+        name: String,
+        description: String?,
+        price: BigDecimal,
+        stock: Int,
+        category: String?
+    ): Product
+    fun update(
+        id: Int,
+        name: String?,
+        description: String?,
+        price: BigDecimal?,
+        stock: Int?,
+        category: String?
+    ): Product?
     fun delete(id: Int): Boolean
     fun updateStock(id: Int, delta: Int): Boolean
 }
@@ -23,7 +37,9 @@ class ProductRepositoryImpl : ProductRepository {
     }
 
     override fun findById(id: Int): Product? = transaction {
-        Products.select { Products.id eq id }.singleOrNull()?.toProduct()
+        Products.select { Products.id eq id }
+            .singleOrNull()
+            ?.toProduct()
     }
 
     override fun create(
@@ -34,7 +50,7 @@ class ProductRepositoryImpl : ProductRepository {
         category: String?
     ): Product = transaction {
         val now = Instant.now()
-        val id = Products.insert {
+        val insertedId = Products.insert {
             it[Products.name] = name
             it[Products.description] = description
             it[Products.price] = price
@@ -44,7 +60,7 @@ class ProductRepositoryImpl : ProductRepository {
             it[updatedAt] = now
         } get Products.id
 
-        Product(id, name, description, price, stock, category)
+        Product(insertedId, name, description, price, stock, category)
     }
 
     override fun update(
@@ -55,7 +71,7 @@ class ProductRepositoryImpl : ProductRepository {
         stock: Int?,
         category: String?
     ): Product? = transaction {
-        val updated = Products.update({ Products.id eq id }) { row ->
+        val updatedRows = Products.update({ Products.id eq id }) { row ->
             name?.let { row[Products.name] = it }
             description?.let { row[Products.description] = it }
             price?.let { row[Products.price] = it }
@@ -63,10 +79,11 @@ class ProductRepositoryImpl : ProductRepository {
             category?.let { row[Products.category] = it }
             row[updatedAt] = Instant.now()
         }
-        if (updated > 0) findById(id) else null
+        if (updatedRows > 0) findById(id) else null
     }
 
     override fun delete(id: Int): Boolean = transaction {
+        // Правильный импорт SqlExpressionBuilder.eq решает Type mismatch
         Products.deleteWhere { Products.id eq id } > 0
     }
 
