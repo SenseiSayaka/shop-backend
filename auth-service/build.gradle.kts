@@ -29,7 +29,9 @@ dependencies {
 
     implementation("org.postgresql:postgresql:42.7.1")
     implementation("com.zaxxer:HikariCP:5.1.0")
-    implementation("org.flywaydb:flyway-core:10.4.1")
+
+    // Flyway 9.x — стабильная поддержка PostgreSQL 15
+    implementation("org.flywaydb:flyway-core:9.22.3")
 
     implementation("at.favre.lib:bcrypt:0.10.2")
     implementation("com.auth0:java-jwt:4.4.0")
@@ -37,13 +39,11 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.14")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
-    // Тесты
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
     testImplementation("io.mockk:mockk:1.13.8")
 
-    // TestContainers
     testImplementation(platform("org.testcontainers:testcontainers-bom:1.19.3"))
     testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.testcontainers:postgresql")
@@ -52,10 +52,8 @@ dependencies {
 
 tasks.test {
     useJUnit()
-    // Показывать вывод тестов в консоли
     testLogging {
         events("passed", "failed", "skipped")
-        showStandardStreams = true
     }
 }
 

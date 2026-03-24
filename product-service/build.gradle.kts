@@ -36,7 +36,7 @@ dependencies {
 
     implementation("org.postgresql:postgresql:42.7.1")
     implementation("com.zaxxer:HikariCP:5.1.0")
-    implementation("org.flywaydb:flyway-core:10.4.1")
+    implementation("org.flywaydb:flyway-core:9.22.3")
 
     // Redis
     implementation("io.lettuce:lettuce-core:6.3.0.RELEASE")
