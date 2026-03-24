@@ -4,6 +4,5 @@ include(
     "auth-service",
     "product-service",
     "order-service",
-    "notification-worker",
-    "api-gateway"
+    "notification-worker"
 )
