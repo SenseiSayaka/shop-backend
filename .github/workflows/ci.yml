@@ -87,11 +87,7 @@ jobs:
       # ── Integration тесты ──
       - name: Integration tests - order-service
         working-directory: order-service
-        run: |
-          ./gradlew test \
-            --tests "com.shop.order.OrderIntegrationTest" \
-            --no-daemon \
-            --info 2>&1 | grep -E "(PASSED|FAILED|ERROR|BUILD|Test|Exception)" || true
+        run: ./gradlew test --tests "com.shop.order.OrderIntegrationTest" --no-daemon --stacktrace 2>&1
 
       - name: Check test results
         run: |
