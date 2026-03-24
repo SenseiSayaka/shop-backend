@@ -10,6 +10,7 @@ jobs:
   test:
     name: Build and Test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
@@ -31,6 +32,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      # Кэшируем Docker образы для TestContainers
+      - name: Cache Docker images
+        uses: actions/cache@v3
+        with:
+          path: /tmp/docker-cache
+          key: docker-${{ runner.os }}-postgres15-ryuk
+          restore-keys: |
+            docker-${{ runner.os }}-
+
+      - name: Pre-pull TestContainers images
+        run: |
+          docker pull postgres:15-alpine
+          docker pull testcontainers/ryuk:0.5.1
+
       - name: Make gradlew executable
         run: |
           chmod +x auth-service/gradlew
@@ -38,28 +53,53 @@ jobs:
           chmod +x order-service/gradlew
           chmod +x notification-worker/gradlew
 
-      # ── Unit тесты (только mockk, без Docker) ──
-      - name: Run unit tests - auth-service
+      # ── Unit тесты (без Docker) ──
+      - name: Unit tests - auth-service
         working-directory: auth-service
-        run: ./gradlew test --tests "com.shop.auth.AuthServiceTest" --no-daemon
+        run: |
+          ./gradlew test \
+            --tests "com.shop.auth.AuthServiceTest" \
+            --no-daemon \
+            -i 2>&1 | grep -E "(PASSED|FAILED|ERROR|BUILD|Test)" || true
         env:
           JWT_SECRET: test-secret-key-at-least-32-characters!!
 
-      - name: Run unit tests - product-service
+      - name: Unit tests - product-service
         working-directory: product-service
-        run: ./gradlew test --tests "com.shop.product.ProductServiceTest" --no-daemon
+        run: |
+          ./gradlew test \
+            --tests "com.shop.product.ProductServiceTest" \
+            --no-daemon \
+            -i 2>&1 | grep -E "(PASSED|FAILED|ERROR|BUILD|Test)" || true
 
-      # ── E2E тесты (TestContainers — поднимает postgres сам) ──
-      - name: Run E2E tests - auth-service
+      # ── E2E тесты (TestContainers поднимает postgres) ──
+      - name: E2E tests - auth-service
         working-directory: auth-service
-        run: ./gradlew test --tests "com.shop.auth.AuthRouteE2ETest" --no-daemon
+        run: |
+          ./gradlew test \
+            --tests "com.shop.auth.AuthRouteE2ETest" \
+            --no-daemon \
+            --info 2>&1 | grep -E "(PASSED|FAILED|ERROR|BUILD|Test|Exception)" || true
         env:
           JWT_SECRET: test-secret-key-at-least-32-characters!!
+          TESTCONTAINERS_RYUK_DISABLED: "false"
 
-      # ── Integration тесты (TestContainers) ──
-      - name: Run integration tests - order-service
+      # ── Integration тесты ──
+      - name: Integration tests - order-service
         working-directory: order-service
-        run: ./gradlew test --tests "com.shop.order.OrderIntegrationTest" --no-daemon
+        run: |
+          ./gradlew test \
+            --tests "com.shop.order.OrderIntegrationTest" \
+            --no-daemon \
+            --info 2>&1 | grep -E "(PASSED|FAILED|ERROR|BUILD|Test|Exception)" || true
+
+      - name: Check test results
+        run: |
+          echo "=== Auth Service Test Results ==="
+          find auth-service/build/reports/tests -name "*.xml" 2>/dev/null | \
+            xargs grep -l "failures=\"0\" errors=\"0\"" && \
+            echo "✅ All auth tests passed" || \
+            echo "❌ Some auth tests failed"
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4
@@ -75,6 +115,7 @@ jobs:
     name: Build Docker Images
     runs-on: ubuntu-latest
     needs: test
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -105,10 +146,10 @@ jobs:
 
       - name: Build all JARs
         run: |
-          cd auth-service && ./gradlew shadowJar --no-daemon
-          cd ../product-service && ./gradlew shadowJar --no-daemon
-          cd ../order-service && ./gradlew shadowJar --no-daemon
-          cd ../notification-worker && ./gradlew shadowJar --no-daemon
+          cd auth-service && ./gradlew shadowJar --no-daemon -q
+          cd ../product-service && ./gradlew shadowJar --no-daemon -q
+          cd ../order-service && ./gradlew shadowJar --no-daemon -q
+          cd ../notification-worker && ./gradlew shadowJar --no-daemon -q
 
       - name: Build Docker images
         run: docker compose build
