@@ -2,6 +2,14 @@ plugins {
     kotlin("jvm") version "1.9.22"
     kotlin("plugin.serialization") version "1.9.22"
     application
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+}
+
+tasks.shadowJar {
+    archiveBaseName.set("app")
+    archiveClassifier.set("")
+    archiveVersion.set("")
+    mergeServiceFiles()
 }
 
 application {

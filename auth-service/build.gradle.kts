@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm") version "1.9.22"
     kotlin("plugin.serialization") version "1.9.22"
     application
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 application {
@@ -36,8 +37,31 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.14")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
+    // Тесты
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
-    testImplementation("org.testcontainers:postgresql:1.19.3")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
     testImplementation("io.mockk:mockk:1.13.8")
+
+    // TestContainers
+    testImplementation(platform("org.testcontainers:testcontainers-bom:1.19.3"))
+    testImplementation("org.testcontainers:testcontainers")
+    testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:junit-jupiter")
+}
+
+tasks.test {
+    useJUnit()
+    // Показывать вывод тестов в консоли
+    testLogging {
+        events("passed", "failed", "skipped")
+        showStandardStreams = true
+    }
+}
+
+tasks.shadowJar {
+    archiveBaseName.set("app")
+    archiveClassifier.set("")
+    archiveVersion.set("")
+    mergeServiceFiles()
 }
