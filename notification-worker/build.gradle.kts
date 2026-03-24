@@ -11,6 +11,9 @@ tasks.shadowJar {
     archiveVersion.set("")
     mergeServiceFiles()
 }
+repositories {
+    mavenCentral()
+}
 
 application {
     mainClass.set("com.shop.notification.ApplicationKt")

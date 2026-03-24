@@ -5,6 +5,11 @@ plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
+// ← ДОБАВИТЬ repositories прямо в сервис
+repositories {
+    mavenCentral()
+}
+
 application {
     mainClass.set("com.shop.order.ApplicationKt")
 }
@@ -22,7 +27,6 @@ dependencies {
     implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
     implementation("io.ktor:ktor-server-swagger:$ktorVersion")
 
-    // HTTP клиент для обращения к product-service
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation("io.ktor:ktor-client-cio:$ktorVersion")
     implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
@@ -36,13 +40,10 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("org.flywaydb:flyway-core:9.22.3")
 
-    // RabbitMQ
     implementation("com.rabbitmq:amqp-client:5.20.0")
-
-    // Redis
     implementation("io.lettuce:lettuce-core:6.3.0.RELEASE")
-
     implementation("com.auth0:java-jwt:4.4.0")
+
     implementation("ch.qos.logback:logback-classic:1.4.14")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 

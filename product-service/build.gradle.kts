@@ -14,6 +14,9 @@ tasks.shadowJar {
 application {
     mainClass.set("com.shop.product.ApplicationKt")
 }
+repositories {
+    mavenCentral()
+}
 
 val ktorVersion = "2.3.7"
 val exposedVersion = "0.44.1"

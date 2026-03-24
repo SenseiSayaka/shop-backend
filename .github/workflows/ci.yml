@@ -32,16 +32,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # Кэшируем Docker образы для TestContainers
-      - name: Cache Docker images
-        uses: actions/cache@v3
-        with:
-          path: /tmp/docker-cache
-          key: docker-${{ runner.os }}-postgres15-ryuk
-          restore-keys: |
-            docker-${{ runner.os }}-
-
-      - name: Pre-pull TestContainers images
+      - name: Pre-pull Docker images for TestContainers
         run: |
           docker pull postgres:15-alpine
           docker pull testcontainers/ryuk:0.5.1
@@ -53,49 +44,78 @@ jobs:
           chmod +x order-service/gradlew
           chmod +x notification-worker/gradlew
 
-      # ── Unit тесты (без Docker) ──
+      # ── Unit тесты ──
       - name: Unit tests - auth-service
         working-directory: auth-service
-        run: |
-          ./gradlew test \
-            --tests "com.shop.auth.AuthServiceTest" \
-            --no-daemon \
-            -i 2>&1 | grep -E "(PASSED|FAILED|ERROR|BUILD|Test)" || true
+        run: ./gradlew test --tests "com.shop.auth.AuthServiceTest" --no-daemon
         env:
           JWT_SECRET: test-secret-key-at-least-32-characters!!
 
       - name: Unit tests - product-service
         working-directory: product-service
-        run: |
-          ./gradlew test \
-            --tests "com.shop.product.ProductServiceTest" \
-            --no-daemon \
-            -i 2>&1 | grep -E "(PASSED|FAILED|ERROR|BUILD|Test)" || true
+        run: ./gradlew test --tests "com.shop.product.ProductServiceTest" --no-daemon
 
-      # ── E2E тесты (TestContainers поднимает postgres) ──
+      # ── E2E тесты ──
       - name: E2E tests - auth-service
         working-directory: auth-service
-        run: |
-          ./gradlew test \
-            --tests "com.shop.auth.AuthRouteE2ETest" \
-            --no-daemon \
-            --info 2>&1 | grep -E "(PASSED|FAILED|ERROR|BUILD|Test|Exception)" || true
+        run: ./gradlew test --tests "com.shop.auth.AuthRouteE2ETest" --no-daemon
         env:
           JWT_SECRET: test-secret-key-at-least-32-characters!!
-          TESTCONTAINERS_RYUK_DISABLED: "false"
 
       # ── Integration тесты ──
       - name: Integration tests - order-service
         working-directory: order-service
-        run: ./gradlew test --tests "com.shop.order.OrderIntegrationTest" --no-daemon --stacktrace 2>&1
+        run: ./gradlew test --tests "com.shop.order.OrderIntegrationTest" --no-daemon
 
-      - name: Check test results
+      # ── Вывод результатов ──
+      - name: Print test summary
+        if: always()
         run: |
-          echo "=== Auth Service Test Results ==="
-          find auth-service/build/reports/tests -name "*.xml" 2>/dev/null | \
-            xargs grep -l "failures=\"0\" errors=\"0\"" && \
-            echo "✅ All auth tests passed" || \
-            echo "❌ Some auth tests failed"
+          echo "================================"
+          echo "        TEST SUMMARY"
+          echo "================================"
+
+          print_result() {
+            local service=$1
+            local report_dir=$2
+
+            if [ ! -d "$report_dir" ]; then
+              echo "⚠️  $service: no report found"
+              return
+            fi
+
+            local total=0
+            local failed=0
+            local skipped=0
+
+            for f in $(find "$report_dir" -name "TEST-*.xml"); do
+              t=$(grep -o 'tests="[0-9]*"' "$f" | grep -o '[0-9]*' | head -1)
+              fa=$(grep -o 'failures="[0-9]*"' "$f" | grep -o '[0-9]*' | head -1)
+              sk=$(grep -o 'skipped="[0-9]*"' "$f" | grep -o '[0-9]*' | head -1)
+              total=$((total + ${t:-0}))
+              failed=$((failed + ${fa:-0}))
+              skipped=$((skipped + ${sk:-0}))
+            done
+
+            local passed=$((total - failed - skipped))
+
+            if [ "$failed" -eq 0 ]; then
+              echo "✅ $service: $passed passed, $skipped skipped"
+            else
+              echo "❌ $service: $passed passed, $failed FAILED, $skipped skipped"
+            fi
+          }
+
+          print_result "auth-service (unit)" \
+            "auth-service/build/test-results/test"
+          print_result "product-service (unit)" \
+            "product-service/build/test-results/test"
+          print_result "auth-service (e2e)" \
+            "auth-service/build/test-results/test"
+          print_result "order-service (integration)" \
+            "order-service/build/test-results/test"
+
+          echo "================================"
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4

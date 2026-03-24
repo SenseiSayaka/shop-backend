@@ -8,6 +8,9 @@ plugins {
 application {
     mainClass.set("com.shop.auth.ApplicationKt")
 }
+repositories {
+    mavenCentral()
+}
 
 val ktorVersion = "2.3.7"
 val exposedVersion = "0.44.1"
