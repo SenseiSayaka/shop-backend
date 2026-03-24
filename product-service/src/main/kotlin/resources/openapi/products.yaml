@@ -1,0 +1,270 @@
+openapi: "3.0.0"
+info:
+  title: Product Service API
+  description: Управление товарами
+  version: "1.0.0"
+servers:
+  - url: http://localhost:8082
+
+security:
+  - bearerAuth: []
+
+paths:
+  /products:
+    get:
+      summary: Получить список всех товаров
+      tags:
+        - Products
+      security: []
+      responses:
+        '200':
+          description: Список товаров
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductResponse'
+              example:
+                - id: 1
+                  name: "iPhone 15"
+                  description: "Смартфон Apple"
+                  price: 999.99
+                  stock: 50
+                  category: "Electronics"
+                - id: 2
+                  name: "MacBook Pro"
+                  description: "Ноутбук Apple"
+                  price: 1999.99
+                  stock: 20
+                  category: "Electronics"
+
+    post:
+      summary: Создать товар (только admin)
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+            example:
+              name: "iPhone 15"
+              description: "Смартфон Apple 2024"
+              price: 999.99
+              stock: 100
+              category: "Electronics"
+      responses:
+        '201':
+          description: Товар создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Только для администраторов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /products/{id}:
+    get:
+      summary: Получить товар по ID
+      tags:
+        - Products
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID товара
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Товар найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '404':
+          description: Товар не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Обновить товар (только admin)
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+            example:
+              price: 899.99
+              stock: 75
+      responses:
+        '200':
+          description: Товар обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '404':
+          description: Товар не найден
+        '403':
+          description: Только для администраторов
+
+    delete:
+      summary: Удалить товар (только admin)
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204':
+          description: Товар удалён
+        '404':
+          description: Товар не найден
+        '403':
+          description: Только для администраторов
+
+  /health:
+    get:
+      summary: Health check
+      tags:
+        - System
+      security: []
+      responses:
+        '200':
+          description: Сервис работает
+          content:
+            application/json:
+              example:
+                status: "UP"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Вставьте JWT токен из /auth/login"
+
+  schemas:
+    ProductResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "iPhone 15"
+        description:
+          type: string
+          nullable: true
+          example: "Смартфон Apple"
+        price:
+          type: number
+          format: double
+          example: 999.99
+        stock:
+          type: integer
+          example: 50
+        category:
+          type: string
+          nullable: true
+          example: "Electronics"
+
+    CreateProductRequest:
+      type: object
+      required:
+        - name
+        - price
+        - stock
+      properties:
+        name:
+          type: string
+          minLength: 1
+          example: "iPhone 15"
+        description:
+          type: string
+          nullable: true
+          example: "Смартфон Apple"
+        price:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 999.99
+        stock:
+          type: integer
+          minimum: 0
+          example: 100
+        category:
+          type: string
+          nullable: true
+          example: "Electronics"
+
+    UpdateProductRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+          example: "iPhone 15 Pro"
+        description:
+          type: string
+          nullable: true
+        price:
+          type: number
+          nullable: true
+          example: 1099.99
+        stock:
+          type: integer
+          nullable: true
+          example: 80
+        category:
+          type: string
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Product not found"
+        code:
+          type: integer
+          example: 404
