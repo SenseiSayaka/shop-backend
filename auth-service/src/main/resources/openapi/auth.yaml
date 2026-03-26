@@ -5,7 +5,6 @@ info:
   version: "1.0.0"
 servers:
   - url: http://localhost:8081
-
 paths:
   /auth/register:
     post:
@@ -19,23 +18,18 @@ paths:
             schema:
               $ref: '#/components/schemas/RegisterRequest'
             example:
-              username: "john_doe"
+              username: "john"
               email: "john@example.com"
               password: "secret123"
       responses:
         '201':
-          description: User registered successfully
+          description: User registered
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
         '400':
           description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
   /auth/login:
     post:
       summary: Login user
@@ -59,7 +53,12 @@ paths:
                 $ref: '#/components/schemas/AuthResponse'
         '401':
           description: Invalid credentials
-
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
 components:
   schemas:
     RegisterRequest:
@@ -71,14 +70,10 @@ components:
       properties:
         username:
           type: string
-          minLength: 3
         email:
           type: string
-          format: email
         password:
           type: string
-          minLength: 6
-
     LoginRequest:
       type: object
       required:
@@ -89,7 +84,6 @@ components:
           type: string
         password:
           type: string
-
     AuthResponse:
       type: object
       properties:
@@ -99,11 +93,3 @@ components:
           type: integer
         role:
           type: string
-
-    ErrorResponse:
-      type: object
-      properties:
-        error:
-          type: string
-        code:
-          type: integer

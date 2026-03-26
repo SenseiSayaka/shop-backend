@@ -31,7 +31,11 @@ class OrderService(
     private val productServiceUrl: String
 ) {
     private val httpClient = HttpClient(CIO) {
-        install(ContentNegotiation) { json() }
+        install(ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+            })
+        }
     }
 
     private val json = Json { ignoreUnknownKeys = true }

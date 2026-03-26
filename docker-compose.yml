@@ -13,7 +13,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
@@ -27,17 +28,22 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
+    hostname: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
     ports:
       - "5672:5672"
       - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
+      start_period: 40s
 
   auth-service:
     build: ./auth-service
@@ -51,7 +57,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    restart: unless-stopped
+    restart: on-failure
 
   product-service:
     build: ./product-service
@@ -68,7 +74,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
+    restart: on-failure
 
   order-service:
     build: ./order-service
@@ -84,7 +90,7 @@ services:
       RABBITMQ_PORT: 5672
       RABBITMQ_USER: guest
       RABBITMQ_PASSWORD: guest
-      PRODUCT_SERVICE_URL: http://product-service:8082V
+      PRODUCT_SERVICE_URL: http://product-service:8082
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,7 +98,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    restart: unless-stopped
+    restart: on-failure
 
   notification-worker:
     build: ./notification-worker
@@ -104,7 +110,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    restart: unless-stopped
+    restart: on-failure
 
 volumes:
   postgres_data:
+  rabbitmq_data:

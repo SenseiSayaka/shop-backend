@@ -30,6 +30,8 @@ fun Application.configureDatabase() {
     Flyway.configure()
         .dataSource(dataSource)
         .locations("classpath:db/migration")
+        .validateOnMigrate(false)
+        .outOfOrder(true)
         .load()
         .migrate()
 
